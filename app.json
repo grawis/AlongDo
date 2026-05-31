@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "AlongDo",
+    "slug": "alongdo",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "platforms": [
+      "ios",
+      "android"
+    ],
+    "sdkVersion": "56.0.0",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.anonymous.alongdo",
+      "adaptiveIcon": {
+        "backgroundColor": "#ffffff"
+      }
+    },
+    "plugins": [
+      "expo-status-bar"
+    ]
+  }
+}
