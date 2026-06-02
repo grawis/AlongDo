@@ -68,9 +68,8 @@ const defaultMapRegion = {
 
 const buildMapRegion = (places, selectedPlace) => {
   const anchor = selectedPlace?.coordinates || places[0]?.coordinates;
-  if (!anchor) {
-    return defaultMapRegion;
-  }
+
+  if (!anchor) return defaultMapRegion;
 
   return {
     latitude: anchor.latitude,
@@ -118,6 +117,7 @@ export default function AddTaskScreen({ groups, onAddTask }) {
     if (selectedPlace) {
       const matchesSelected =
         value.trim() === selectedPlace.name || value.trim() === selectedPlace.address;
+
       if (!matchesSelected) {
         setSelectedPlace(null);
       }
@@ -126,8 +126,9 @@ export default function AddTaskScreen({ groups, onAddTask }) {
 
   const handleSearchPlaces = async () => {
     const query = locationInput.trim();
+
     if (query.length < 2) {
-      Alert.alert('請先輸入關鍵字', '請先輸入地址、建築名稱或店名再搜尋。');
+      Alert.alert('請輸入搜尋關鍵字', '請至少輸入兩個字，再搜尋固定地址或地點。');
       return;
     }
 
@@ -140,7 +141,7 @@ export default function AddTaskScreen({ groups, onAddTask }) {
 
       if (candidates.length === 0) {
         setSelectedPlace(null);
-        setSearchError('找不到符合的 Google 地點結果，請換個關鍵字試試。');
+        setSearchError('找不到符合條件的 Google 地點結果，請試試看更完整的名稱。');
       }
     } catch (error) {
       setPlaceResults([]);
@@ -159,22 +160,22 @@ export default function AddTaskScreen({ groups, onAddTask }) {
 
   const handleSubmit = () => {
     if (!title.trim()) {
-      Alert.alert('請補上任務名稱', '任務名稱是必填欄位。');
+      Alert.alert('請填寫任務名稱', '任務名稱是必填欄位。');
       return;
     }
 
     if (!locationInput.trim()) {
-      Alert.alert('請補上任務地點', '任務地點是必填欄位。');
+      Alert.alert('請填寫任務地點', '任務地點是必填欄位。');
       return;
     }
 
     if (taskType === 'group' && !groupId) {
-      Alert.alert('請選擇群組', '團隊任務需要先指定群組。');
+      Alert.alert('請選擇群組', '團隊任務需要指定一個群組。');
       return;
     }
 
     if (locationMode === 'fixed' && !selectedPlace) {
-      Alert.alert('請先選擇固定地址', '固定地址任務需要先從搜尋結果或地圖標記中選一個地點。');
+      Alert.alert('請先選擇固定地址', '固定地址任務需要先從搜尋結果或地圖上選定地點。');
       return;
     }
 
@@ -205,10 +206,10 @@ export default function AddTaskScreen({ groups, onAddTask }) {
     resetForm();
 
     Alert.alert(
-      '任務已建立',
+      '任務建立成功',
       locationMode === 'fixed'
-        ? '這筆任務已綁定固定地址，之後不會隨目前位置改變。'
-        : '這筆任務會依你當下的位置去找最近的符合地點。'
+        ? '這筆任務已綁定固定地址，之後移動到別的城市，任務位置也不會改變。'
+        : '這筆任務會在需要時依你的目前位置解析附近對應地點。'
     );
   };
 
@@ -222,7 +223,7 @@ export default function AddTaskScreen({ groups, onAddTask }) {
     >
       <Text style={styles.sectionTitle}>新增任務</Text>
       <Text style={styles.helpText}>
-        你現在可以把任務地點分成兩種模式：一種是只記需求類型，例如全聯、便利商店；另一種是固定指定地址，例如成大資工系館或某個特定分店。
+        你現在可以把任務地點分成兩種模式。一種是只記需求類型，像是全聯或便利商店；另一種是固定指定地址，像是成大資工系館或某間特定分店。
       </Text>
 
       <OptionRow label="任務類型" options={taskTypeOptions} value={taskType} onChange={setTaskType} />
@@ -251,7 +252,7 @@ export default function AddTaskScreen({ groups, onAddTask }) {
         placeholder={
           locationMode === 'fixed'
             ? '例如：成大資工系館、7-ELEVEN 成大門市'
-            : '例如：全聯、便利商店、影印店'
+            : '例如：全聯、便利商店、五金行'
         }
         value={locationInput}
         onChangeText={handleChangeLocationInput}
@@ -271,12 +272,12 @@ export default function AddTaskScreen({ groups, onAddTask }) {
           </TouchableOpacity>
 
           <Text style={styles.modeHint}>
-            固定地址任務建立之後，就算你移動到別的城市，這筆任務仍然會指向同一個地點。
+            固定地址任務建立後，之後你移動到別的城市，這筆任務仍然會指向同一個地點。
           </Text>
 
           {selectedPlace ? (
             <View style={styles.selectedPlaceBox}>
-              <Text style={styles.selectedPlaceTitle}>目前選中的固定地點</Text>
+              <Text style={styles.selectedPlaceTitle}>目前已選擇的地點</Text>
               <Text style={styles.selectedPlaceName}>{selectedPlace.name}</Text>
               <Text style={styles.selectedPlaceAddress}>{selectedPlace.address}</Text>
             </View>
@@ -295,11 +296,10 @@ export default function AddTaskScreen({ groups, onAddTask }) {
                   region={mapRegion}
                 >
                   {placeResults.map((place) => {
-                    if (!place.coordinates) {
-                      return null;
-                    }
+                    if (!place.coordinates) return null;
 
                     const selected = selectedPlace?.placeId === place.placeId;
+
                     return (
                       <Marker
                         key={place.placeId}
@@ -330,7 +330,7 @@ export default function AddTaskScreen({ groups, onAddTask }) {
         </>
       ) : (
         <Text style={styles.modeHint}>
-          彈性地點任務只記需求類型。之後在附近任務或規劃流程裡，會依你當下位置去找最近的符合地點。
+          彈性地點代表先記需求類型，之後在附近任務頁會依照目前定位找對應的附近地點。
         </Text>
       )}
 
@@ -340,6 +340,7 @@ export default function AddTaskScreen({ groups, onAddTask }) {
           <View style={styles.optionWrap}>
             {availableGroups.map((group) => {
               const selected = group.id === groupId;
+
               return (
                 <TouchableOpacity
                   key={group.id}

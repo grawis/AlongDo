@@ -1,6 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { SafeAreaView, View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import {
+  ActivityIndicator,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import * as Location from 'expo-location';
 import HomeScreen from './screens/HomeScreen';
 import MyTasksScreen from './screens/MyTasksScreen';
 import GroupTasksScreen from './screens/GroupTasksScreen';
@@ -9,12 +17,20 @@ import AddTaskScreen from './screens/AddTaskScreen';
 import NearbySimulationScreen from './screens/NearbySimulationScreen';
 import RoutePlannerScreen from './screens/RoutePlannerScreen';
 import WeatherReminderScreen from './screens/WeatherReminderScreen';
+import { ensureAnonymousAuth } from './services/auth';
 import {
-  fetchPersonalTasks,
+  createGroup,
+  createGroupTask,
+  createPersonalTask,
+  deleteGroupTask,
+  deletePersonalTask,
   fetchGroupTasks,
   fetchGroups,
-  createPersonalTask,
-  createGroupTask,
+  fetchPersonalTasks,
+  joinGroupByInviteCode,
+  updateGroupEnabled,
+  updateGroupTaskStatus,
+  updatePersonalTaskStatus,
 } from './services/api';
 
 const tabs = [
@@ -28,16 +44,20 @@ const tabs = [
   { key: 'weather', label: '天氣提醒' },
 ];
 
-const getNextGroupTaskStatus = (status) => {
-  if (status === 'pending') {
-    return 'in_progress';
-  }
+const getNextTaskStatus = (status) => {
+  if (status === 'pending') return 'in_progress';
+  if (status === 'in_progress') return 'completed';
+  return 'pending';
+};
 
-  if (status === 'in_progress') {
-    return 'completed';
-  }
+const shortUid = (uid) => (uid ? `${uid.slice(0, 6)}...` : '');
 
-  return 'completed';
+const formatCoordsLabel = (coords) => `${coords.latitude.toFixed(5)}, ${coords.longitude.toFixed(5)}`;
+
+const buildSharedLocationLabel = (coords, place) => {
+  const regionText = [place?.region, place?.city || place?.district].filter(Boolean).join('');
+  const areaLabel = regionText ? `${regionText}附近` : '目前位置';
+  return `${areaLabel}（${formatCoordsLabel(coords)}）`;
 };
 
 export default function App() {
@@ -45,73 +65,194 @@ export default function App() {
   const [personalTasks, setPersonalTasks] = useState([]);
   const [groupTasks, setGroupTasks] = useState([]);
   const [groups, setGroups] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [sharedLocation, setSharedLocation] = useState(null);
+  const [sharedLocationLabel, setSharedLocationLabel] = useState('尚未取得目前位置');
 
   useEffect(() => {
-    loadData();
+    initializeAppData();
   }, []);
 
-  const loadData = async () => {
+  const loadData = async (uid) => {
     setLoading(true);
 
     try {
-      const [personal, group, groupList] = await Promise.all([
-        fetchPersonalTasks(),
-        fetchGroupTasks(),
-        fetchGroups(),
-      ]);
+      const [personal, groupList] = await Promise.all([fetchPersonalTasks(uid), fetchGroups(uid)]);
+      const groupIds = groupList.map((group) => group.id);
+      const groupTaskList = await fetchGroupTasks(groupIds);
 
       setPersonalTasks(personal);
-      setGroupTasks(group);
       setGroups(groupList);
+      setGroupTasks(groupTaskList);
     } finally {
       setLoading(false);
     }
   };
 
+  const initializeAppData = async () => {
+    setLoading(true);
+    const user = await ensureAnonymousAuth();
+    setCurrentUser(user);
+    await loadData(user.uid);
+  };
+
+  const requestSharedLocation = async () => {
+    const hasServicesEnabled = await Location.hasServicesEnabledAsync();
+    if (!hasServicesEnabled) {
+      throw new Error('裝置定位服務尚未開啟。');
+    }
+
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      throw new Error('尚未取得定位權限。');
+    }
+
+    let position = null;
+
+    try {
+      position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+    } catch (error) {
+      const fallback = await Location.getLastKnownPositionAsync({
+        maxAge: 60 * 1000,
+        requiredAccuracy: 200,
+      });
+
+      if (!fallback) {
+        throw error;
+      }
+
+      position = fallback;
+    }
+
+    const coords = {
+      latitude: position.coords.latitude,
+      longitude: position.coords.longitude,
+    };
+
+    let place = null;
+    try {
+      const reverseGeocode = await Location.reverseGeocodeAsync(coords);
+      place = reverseGeocode?.[0] || null;
+    } catch (error) {
+      console.warn('Reverse geocode failed:', error);
+    }
+
+    setSharedLocation(coords);
+    setSharedLocationLabel(buildSharedLocationLabel(coords, place));
+    return coords;
+  };
+
   const handleAddTask = async (task) => {
+    if (!currentUser) return;
+
     if (task.taskType === 'group') {
       const targetGroup = groups.find((group) => group.id === task.groupId);
-      const newGroupTask = await createGroupTask({
-        ...task,
-        groupName: targetGroup?.name || '',
-        ownerName: '我',
-      });
+      const newGroupTask = await createGroupTask(
+        {
+          ...task,
+          groupName: targetGroup?.name || '',
+          ownerName: targetGroup?.nickname || '我',
+        },
+        currentUser.uid
+      );
 
       setGroupTasks((current) => [newGroupTask, ...current]);
       setActiveTab('groupTasks');
       return;
     }
 
-    const newTask = await createPersonalTask(task);
+    const newTask = await createPersonalTask(task, currentUser.uid);
     setPersonalTasks((current) => [newTask, ...current]);
     setActiveTab('myTasks');
   };
 
-  const handleToggleGroup = (groupId) => {
+  const handleToggleGroup = async (groupId) => {
+    const currentGroup = groups.find((group) => group.id === groupId);
+    if (!currentGroup) return;
+
+    const nextEnabled = !currentGroup.enabled;
+    await updateGroupEnabled(groupId, nextEnabled);
+
     setGroups((current) =>
       current.map((group) =>
         group.id === groupId
           ? {
               ...group,
-              enabled: !group.enabled,
+              enabled: nextEnabled,
             }
           : group
       )
     );
   };
 
-  const handleAdvanceGroupTaskStatus = (taskId) => {
+  const handleAdvanceGroupTaskStatus = async (taskId) => {
+    const currentTask = groupTasks.find((task) => task.id === taskId);
+    if (!currentTask) return;
+
+    const nextStatus = getNextTaskStatus(currentTask.status);
+    await updateGroupTaskStatus(taskId, nextStatus);
+
     setGroupTasks((current) =>
       current.map((task) =>
         task.id === taskId
           ? {
               ...task,
-              status: getNextGroupTaskStatus(task.status),
+              status: nextStatus,
             }
           : task
       )
     );
+  };
+
+  const handleAdvancePersonalTaskStatus = async (taskId) => {
+    const currentTask = personalTasks.find((task) => task.id === taskId);
+    if (!currentTask) return;
+
+    const nextStatus = getNextTaskStatus(currentTask.status);
+    await updatePersonalTaskStatus(taskId, nextStatus);
+
+    setPersonalTasks((current) =>
+      current.map((task) =>
+        task.id === taskId
+          ? {
+              ...task,
+              status: nextStatus,
+            }
+          : task
+      )
+    );
+  };
+
+  const handleCreateGroup = async ({ name, nickname }) => {
+    if (!currentUser) return;
+
+    const createdGroup = await createGroup({ name, nickname }, currentUser.uid);
+    setGroups((current) => [createdGroup, ...current]);
+  };
+
+  const handleJoinGroup = async ({ inviteCode, nickname }) => {
+    if (!currentUser) return null;
+
+    const joinedGroup = await joinGroupByInviteCode({ inviteCode, nickname }, currentUser.uid);
+    const updatedGroups = await fetchGroups(currentUser.uid);
+    const updatedGroupTasks = await fetchGroupTasks(updatedGroups.map((group) => group.id));
+
+    setGroups(updatedGroups);
+    setGroupTasks(updatedGroupTasks);
+    return joinedGroup;
+  };
+
+  const handleDeletePersonalTask = async (taskId) => {
+    await deletePersonalTask(taskId);
+    setPersonalTasks((current) => current.filter((task) => task.id !== taskId));
+  };
+
+  const handleDeleteGroupTask = async (taskId) => {
+    await deleteGroupTask(taskId);
+    setGroupTasks((current) => current.filter((task) => task.id !== taskId));
   };
 
   return (
@@ -121,30 +262,72 @@ export default function App() {
       <View style={styles.header}>
         <Text style={styles.title}>AlongDo</Text>
         <Text style={styles.subtitle}>懂地點的待辦小幫手</Text>
+        {currentUser ? <Text style={styles.identity}>目前裝置身分：{shortUid(currentUser.uid)}</Text> : null}
+        <Text style={styles.locationSummary}>{sharedLocationLabel}</Text>
       </View>
 
       <View style={styles.content}>
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#4a67ff" />
-            <Text style={styles.loadingText}>正在載入任務資料...</Text>
+            <Text style={styles.loadingText}>正在載入你的任務與群組...</Text>
           </View>
         ) : (
           <>
             {activeTab === 'home' && (
               <HomeScreen personalTasks={personalTasks} groupTasks={groupTasks} groups={groups} />
             )}
-            {activeTab === 'myTasks' && <MyTasksScreen tasks={personalTasks} />}
-            {activeTab === 'groupTasks' && (
-              <GroupTasksScreen tasks={groupTasks} onAdvanceTaskStatus={handleAdvanceGroupTaskStatus} />
+            {activeTab === 'myTasks' && (
+              <MyTasksScreen
+                tasks={personalTasks}
+                onAdvanceTaskStatus={handleAdvancePersonalTaskStatus}
+                onDeleteTask={handleDeletePersonalTask}
+              />
             )}
-            {activeTab === 'groups' && <GroupsScreen groups={groups} onToggleGroup={handleToggleGroup} />}
+            {activeTab === 'groupTasks' && (
+              <GroupTasksScreen
+                tasks={groupTasks}
+                onAdvanceTaskStatus={handleAdvanceGroupTaskStatus}
+                onDeleteTask={handleDeleteGroupTask}
+              />
+            )}
+            {activeTab === 'groups' && (
+              <GroupsScreen
+                groups={groups}
+                currentUser={currentUser}
+                onToggleGroup={handleToggleGroup}
+                onCreateGroup={handleCreateGroup}
+                onJoinGroup={handleJoinGroup}
+              />
+            )}
             {activeTab === 'add' && <AddTaskScreen groups={groups} onAddTask={handleAddTask} />}
             {activeTab === 'nearby' && (
-              <NearbySimulationScreen personalTasks={personalTasks} groupTasks={groupTasks} />
+              <NearbySimulationScreen
+                personalTasks={personalTasks}
+                groupTasks={groupTasks}
+                sharedLocation={sharedLocation}
+                sharedLocationLabel={sharedLocationLabel}
+                onRequestLocation={requestSharedLocation}
+              />
             )}
-            {activeTab === 'route' && <RoutePlannerScreen tasks={[...personalTasks, ...groupTasks]} />}
-            {activeTab === 'weather' && <WeatherReminderScreen />}
+            {activeTab === 'route' && (
+              <RoutePlannerScreen
+                tasks={[...personalTasks, ...groupTasks]}
+                currentUserUid={currentUser?.uid}
+                groupIds={groups.map((group) => group.id)}
+                sharedLocation={sharedLocation}
+                sharedLocationLabel={sharedLocationLabel}
+                onRequestLocation={requestSharedLocation}
+              />
+            )}
+            {activeTab === 'weather' && (
+              <WeatherReminderScreen
+                tasks={[...personalTasks, ...groupTasks]}
+                sharedLocation={sharedLocation}
+                sharedLocationLabel={sharedLocationLabel}
+                onRequestLocation={requestSharedLocation}
+              />
+            )}
           </>
         )}
       </View>
@@ -156,7 +339,9 @@ export default function App() {
             style={[styles.navButton, activeTab === tab.key && styles.navButtonActive]}
             onPress={() => setActiveTab(tab.key)}
           >
-            <Text style={[styles.navText, activeTab === tab.key && styles.navTextActive]}>{tab.label}</Text>
+            <Text style={[styles.navText, activeTab === tab.key && styles.navTextActive]}>
+              {tab.label}
+            </Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -183,6 +368,16 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontSize: 14,
     color: '#6b6f85',
+  },
+  identity: {
+    marginTop: 6,
+    fontSize: 12,
+    color: '#7a7f98',
+  },
+  locationSummary: {
+    marginTop: 6,
+    fontSize: 12,
+    color: '#4a67ff',
   },
   content: {
     flex: 1,

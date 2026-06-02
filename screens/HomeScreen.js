@@ -8,10 +8,10 @@ export default function HomeScreen({ personalTasks, groupTasks, groups }) {
 
   return (
     <View style={styles.screen}>
-      <Text style={styles.sectionTitle}>AlongDo 摘要</Text>
+      <Text style={styles.sectionTitle}>AlongDo 首頁</Text>
 
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>目前狀態</Text>
+        <Text style={styles.cardTitle}>目前摘要</Text>
         <Text style={styles.cardText}>個人任務：{personalTasks.length}</Text>
         <Text style={styles.cardText}>待處理個人任務：{pendingPersonal}</Text>
         <Text style={styles.cardText}>團隊任務：{groupTasks.length}</Text>
@@ -22,7 +22,7 @@ export default function HomeScreen({ personalTasks, groupTasks, groups }) {
       <View style={styles.noteBox}>
         <Text style={styles.noteTitle}>目前重點</Text>
         <Text style={styles.noteText}>
-          你現在可以新增個人任務或團隊任務，並把任務地點分成彈性地點與固定地址兩種模式。彈性地點之後會依當前位置找最近地點，固定地址則會一直維持同一個目的地。
+          你現在可以新增個人任務、建立或加入群組、建立團隊任務，並把資料同步存到 Firebase。固定地址任務可透過 Google 地點搜尋選定位置；彈性地點任務則會在附近任務頁根據目前定位找對應地點。
         </Text>
       </View>
     </View>

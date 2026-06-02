@@ -1,10 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { statusLabels, groups } from '../data/mockTasks';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { statusLabels } from '../data/mockTasks';
 
-const groupNameById = Object.fromEntries(groups.map((group) => [group.id, group.name]));
-
-export default function TaskCard({ task }) {
+export default function TaskCard({ task, onDelete }) {
   const statusColor =
     task.status === 'completed'
       ? '#2ea965'
@@ -13,10 +11,7 @@ export default function TaskCard({ task }) {
       : '#5566ff';
 
   const statusLabel = statusLabels[task.status] || task.status;
-  const typeLabel = task.groupId
-    ? `團隊任務 / ${groupNameById[task.groupId] || task.groupName || task.groupId}`
-    : '個人任務';
-
+  const typeLabel = task.groupId ? `團隊任務 / ${task.groupName || task.groupId}` : '個人任務';
   const locationModeLabel = task.locationMode === 'fixed' ? '固定地址' : '彈性地點';
   const resolvedAddress = task.resolvedAddress || task.exactAddress || '';
   const resolvedPlaceName = task.resolvedPlaceName || '';
@@ -38,13 +33,21 @@ export default function TaskCard({ task }) {
         <Text style={styles.subDetail}>目前對應地點：{resolvedPlaceName}</Text>
       ) : null}
       {task.locationMode === 'flexible' && resolvedAddress ? (
-        <Text style={styles.subDetail}>目前地址：{resolvedAddress}</Text>
+        <Text style={styles.subDetail}>目前對應地址：{resolvedAddress}</Text>
       ) : null}
 
       <View style={styles.metaRow}>
         <Text style={styles.metaText}>模式：{locationModeLabel}</Text>
         <Text style={styles.metaText}>{typeLabel}</Text>
       </View>
+
+      {onDelete ? (
+        <View style={styles.actionRow}>
+          <TouchableOpacity style={styles.deleteButton} onPress={() => onDelete(task)}>
+            <Text style={styles.deleteButtonText}>刪除任務</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -103,5 +106,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#7a7f98',
     flex: 1,
+  },
+  actionRow: {
+    marginTop: 14,
+    alignItems: 'flex-end',
+  },
+  deleteButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: '#fff1f1',
+    borderWidth: 1,
+    borderColor: '#f5caca',
+  },
+  deleteButtonText: {
+    color: '#c23b3b',
+    fontSize: 13,
+    fontWeight: '700',
   },
 });

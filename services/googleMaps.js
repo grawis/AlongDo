@@ -47,8 +47,7 @@ const fetchPlacesNew = async (endpoint, body, fieldMask) => {
   const data = await response.json().catch(() => null);
 
   if (!response.ok) {
-    const message =
-      data?.error?.message || data?.message || `HTTP ${response.status}`;
+    const message = data?.error?.message || data?.message || `HTTP ${response.status}`;
     throw new Error(message);
   }
 
@@ -93,11 +92,7 @@ export async function searchPlaceCandidates(query) {
 }
 
 export async function searchNearbyPlaces(coords, options = {}) {
-  const {
-    keyword = '',
-    pageSize = 5,
-    radius = 1500,
-  } = options;
+  const { keyword = '', pageSize = 5, radius = 1500 } = options;
 
   const data = await fetchPlacesNew(
     'places:searchText',
