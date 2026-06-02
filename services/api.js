@@ -307,6 +307,34 @@ export async function fetchGroups(uid) {
   return initialGroups;
 }
 
+export async function fetchGroupMembers(groupId) {
+  if (isFirebaseConfigured && db) {
+    const snapshot = await getDocs(
+      query(collection(db, COLLECTIONS.groupMembers), where('groupId', '==', groupId))
+    );
+
+    return snapshot.docs.map((memberDoc) => {
+      const data = memberDoc.data();
+      return {
+        id: memberDoc.id,
+        uid: data.uid,
+        nickname: data.nickname || '未設定暱稱',
+        role: data.role || 'member',
+      };
+    });
+  }
+
+  await delay(150);
+  return [
+    {
+      id: `${groupId}-owner`,
+      uid: 'local-user',
+      nickname: '我',
+      role: 'owner',
+    },
+  ];
+}
+
 export async function createGroup({ name, nickname }, uid) {
   if (!isFirebaseConfigured || !db) {
     await delay(200);

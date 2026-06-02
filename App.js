@@ -24,6 +24,7 @@ import {
   createPersonalTask,
   deleteGroupTask,
   deletePersonalTask,
+  fetchGroupMembers,
   fetchGroupTasks,
   fetchGroups,
   fetchPersonalTasks,
@@ -53,6 +54,7 @@ const getNextTaskStatus = (status) => {
 const shortUid = (uid) => (uid ? `${uid.slice(0, 6)}...` : '');
 
 const formatCoordsLabel = (coords) => `${coords.latitude.toFixed(5)}, ${coords.longitude.toFixed(5)}`;
+const getEnabledGroupIds = (groupList) => groupList.filter((group) => group.enabled).map((group) => group.id);
 
 const buildSharedLocationLabel = (coords, place) => {
   const regionText = [place?.region, place?.city || place?.district].filter(Boolean).join('');
@@ -69,6 +71,8 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [sharedLocation, setSharedLocation] = useState(null);
   const [sharedLocationLabel, setSharedLocationLabel] = useState('尚未取得目前位置');
+  const [groupMembersByGroup, setGroupMembersByGroup] = useState({});
+  const [loadingMemberGroupIds, setLoadingMemberGroupIds] = useState([]);
 
   useEffect(() => {
     initializeAppData();
@@ -79,7 +83,7 @@ export default function App() {
 
     try {
       const [personal, groupList] = await Promise.all([fetchPersonalTasks(uid), fetchGroups(uid)]);
-      const groupIds = groupList.map((group) => group.id);
+      const groupIds = getEnabledGroupIds(groupList);
       const groupTaskList = await fetchGroupTasks(groupIds);
 
       setPersonalTasks(personal);
@@ -176,16 +180,17 @@ export default function App() {
     const nextEnabled = !currentGroup.enabled;
     await updateGroupEnabled(groupId, nextEnabled);
 
-    setGroups((current) =>
-      current.map((group) =>
+    const nextGroups = groups.map((group) =>
         group.id === groupId
           ? {
               ...group,
               enabled: nextEnabled,
             }
           : group
-      )
-    );
+      );
+    setGroups(nextGroups);
+    const updatedGroupTasks = await fetchGroupTasks(getEnabledGroupIds(nextGroups));
+    setGroupTasks(updatedGroupTasks);
   };
 
   const handleAdvanceGroupTaskStatus = async (taskId) => {
@@ -238,11 +243,27 @@ export default function App() {
 
     const joinedGroup = await joinGroupByInviteCode({ inviteCode, nickname }, currentUser.uid);
     const updatedGroups = await fetchGroups(currentUser.uid);
-    const updatedGroupTasks = await fetchGroupTasks(updatedGroups.map((group) => group.id));
+    const updatedGroupTasks = await fetchGroupTasks(getEnabledGroupIds(updatedGroups));
 
     setGroups(updatedGroups);
     setGroupTasks(updatedGroupTasks);
     return joinedGroup;
+  };
+
+  const handleLoadGroupMembers = async (groupId) => {
+    if (groupMembersByGroup[groupId]) return groupMembersByGroup[groupId];
+
+    setLoadingMemberGroupIds((current) => [...current, groupId]);
+    try {
+      const members = await fetchGroupMembers(groupId);
+      setGroupMembersByGroup((current) => ({
+        ...current,
+        [groupId]: members,
+      }));
+      return members;
+    } finally {
+      setLoadingMemberGroupIds((current) => current.filter((id) => id !== groupId));
+    }
   };
 
   const handleDeletePersonalTask = async (taskId) => {
@@ -298,6 +319,9 @@ export default function App() {
                 onToggleGroup={handleToggleGroup}
                 onCreateGroup={handleCreateGroup}
                 onJoinGroup={handleJoinGroup}
+                groupMembersByGroup={groupMembersByGroup}
+                loadingMemberGroupIds={loadingMemberGroupIds}
+                onLoadGroupMembers={handleLoadGroupMembers}
               />
             )}
             {activeTab === 'add' && <AddTaskScreen groups={groups} onAddTask={handleAddTask} />}
@@ -314,7 +338,7 @@ export default function App() {
               <RoutePlannerScreen
                 tasks={[...personalTasks, ...groupTasks]}
                 currentUserUid={currentUser?.uid}
-                groupIds={groups.map((group) => group.id)}
+                groupIds={getEnabledGroupIds(groups)}
                 sharedLocation={sharedLocation}
                 sharedLocationLabel={sharedLocationLabel}
                 onRequestLocation={requestSharedLocation}

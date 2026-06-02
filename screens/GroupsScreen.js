@@ -16,11 +16,15 @@ export default function GroupsScreen({
   onToggleGroup,
   onCreateGroup,
   onJoinGroup,
+  groupMembersByGroup,
+  loadingMemberGroupIds,
+  onLoadGroupMembers,
 }) {
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupNickname, setNewGroupNickname] = useState('');
   const [inviteCode, setInviteCode] = useState('');
   const [joinNickname, setJoinNickname] = useState('');
+  const [expandedGroupIds, setExpandedGroupIds] = useState([]);
 
   const handleCreate = async () => {
     if (!newGroupName.trim() || !newGroupNickname.trim()) {
@@ -54,6 +58,20 @@ export default function GroupsScreen({
       Alert.alert('加入成功', '你已成功加入群組。');
     } catch (error) {
       Alert.alert('加入失敗', error.message);
+    }
+  };
+
+  const handleToggleMembers = async (groupId) => {
+    const expanded = expandedGroupIds.includes(groupId);
+
+    if (expanded) {
+      setExpandedGroupIds((current) => current.filter((id) => id !== groupId));
+      return;
+    }
+
+    setExpandedGroupIds((current) => [...current, groupId]);
+    if (!groupMembersByGroup[groupId]) {
+      await onLoadGroupMembers(groupId);
     }
   };
 
@@ -133,6 +151,34 @@ export default function GroupsScreen({
             <Text style={[styles.groupStatus, item.enabled ? styles.enabled : styles.disabled]}>
               {item.enabled ? '目前啟用中' : '目前停用中'}
             </Text>
+
+            <TouchableOpacity
+              style={styles.membersButton}
+              onPress={() => handleToggleMembers(item.id)}
+            >
+              <Text style={styles.membersButtonText}>
+                {expandedGroupIds.includes(item.id) ? '收起成員列表' : '顯示目前成員'}
+              </Text>
+            </TouchableOpacity>
+
+            {expandedGroupIds.includes(item.id) ? (
+              <View style={styles.memberBox}>
+                {loadingMemberGroupIds.includes(item.id) ? (
+                  <Text style={styles.memberHint}>正在載入成員資料...</Text>
+                ) : groupMembersByGroup[item.id]?.length ? (
+                  groupMembersByGroup[item.id].map((member) => (
+                    <View key={member.id} style={styles.memberRow}>
+                      <Text style={styles.memberName}>{member.nickname}</Text>
+                      <Text style={styles.memberMeta}>
+                        {member.role === 'owner' ? '建立者' : '成員'} / {member.uid.slice(0, 6)}...
+                      </Text>
+                    </View>
+                  ))
+                ) : (
+                  <Text style={styles.memberHint}>目前沒有成員資料。</Text>
+                )}
+              </View>
+            ) : null}
           </View>
         ))
       )}
@@ -242,6 +288,43 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 14,
     fontWeight: '700',
+  },
+  membersButton: {
+    alignSelf: 'flex-start',
+    marginTop: 12,
+    backgroundColor: '#eef3ff',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  membersButtonText: {
+    color: '#27316b',
+    fontWeight: '700',
+  },
+  memberBox: {
+    marginTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#edf0f6',
+    paddingTop: 12,
+  },
+  memberRow: {
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f2f4f9',
+  },
+  memberName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1f2340',
+    marginBottom: 4,
+  },
+  memberMeta: {
+    fontSize: 12,
+    color: '#6b718d',
+  },
+  memberHint: {
+    color: '#7a7f98',
+    lineHeight: 20,
   },
   enabled: {
     color: '#2ea965',
