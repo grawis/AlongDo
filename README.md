@@ -1,4 +1,7 @@
 # AlongDo
+<img width="253" height="99" alt="image" src="https://github.com/user-attachments/assets/e1fed945-a176-412c-8674-cdc861a18732" />
+
+
 AlongDo 是一個結合「任務管理、地點感知、群組協作、路線規劃、天氣提醒」的 Android 行動 App 原型。  
 它的核心概念不是只記錄「要做什麼」，而是進一步幫使用者判斷「要去哪裡做、附近有沒有更適合的地點、要不要順路一起完成」。
 
@@ -96,6 +99,10 @@ AlongDo 目前的主要特色如下：
 
 - 依目前位置查詢即時天氣
 - 根據任務種類與天氣狀況提供提醒
+
+<img width="389" height="841" alt="image" src="https://github.com/user-attachments/assets/cd1c8bf6-a89b-497f-b921-1bc57f34f39b" /> 
+
+
 
 ---
 
