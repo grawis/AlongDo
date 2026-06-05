@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { searchPlaceCandidates } from '../services/googleMaps';
+import { colors } from '../theme/colors';
 
 const taskTypeOptions = [
   { value: 'personal', label: '個人任務' },
@@ -220,6 +221,8 @@ export default function AddTaskScreen({ groups, onAddTask }) {
       style={styles.screen}
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+      showsVerticalScrollIndicator={false}
     >
       <Text style={styles.sectionTitle}>新增任務</Text>
       <Text style={styles.helpText}>
@@ -265,7 +268,7 @@ export default function AddTaskScreen({ groups, onAddTask }) {
         <>
           <TouchableOpacity style={styles.secondaryButton} onPress={handleSearchPlaces}>
             {searchingPlaces ? (
-              <ActivityIndicator color="#4a67ff" />
+              <ActivityIndicator color={colors.primary} />
             ) : (
               <Text style={styles.secondaryButtonText}>搜尋 Google 地點結果</Text>
             )}
@@ -306,7 +309,7 @@ export default function AddTaskScreen({ groups, onAddTask }) {
                         coordinate={place.coordinates}
                         title={place.name}
                         description={place.address}
-                        pinColor={selected ? '#4a67ff' : '#ef6c57'}
+                        pinColor={selected ? colors.primary : colors.secondary}
                         onPress={() => handleSelectPlace(place)}
                       />
                     );
@@ -375,31 +378,31 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1f2340',
+    color: colors.text,
     marginBottom: 8,
   },
   helpText: {
     fontSize: 14,
-    color: '#5f6477',
+    color: colors.textSecondary,
     marginBottom: 14,
     lineHeight: 20,
   },
   fieldLabel: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#2d3350',
+    color: colors.text,
     marginBottom: 8,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#d8dee7',
+    borderColor: colors.border,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     marginBottom: 14,
     fontSize: 16,
-    color: '#1f2340',
-    backgroundColor: '#ffffff',
+    color: colors.text,
+    backgroundColor: colors.surface,
   },
   optionSection: {
     marginBottom: 14,
@@ -413,65 +416,65 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 999,
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#dbe1ee',
+    borderColor: colors.border,
     marginRight: 8,
     marginBottom: 8,
   },
   optionChipSelected: {
-    backgroundColor: '#eef3ff',
-    borderColor: '#4a67ff',
+    backgroundColor: colors.secondarySoft,
+    borderColor: colors.secondary,
   },
   optionChipText: {
-    color: '#5f6477',
+    color: colors.textSecondary,
     fontWeight: '600',
   },
   optionChipTextSelected: {
-    color: '#27316b',
+    color: colors.primary,
   },
   secondaryButton: {
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#4a67ff',
+    borderColor: colors.primary,
     paddingVertical: 12,
     alignItems: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface,
   },
   secondaryButtonText: {
-    color: '#4a67ff',
+    color: colors.primary,
     fontWeight: '700',
     fontSize: 15,
   },
   modeHint: {
     marginTop: 10,
     marginBottom: 14,
-    color: '#6a7189',
+    color: colors.textSecondary,
     lineHeight: 20,
     fontSize: 13,
   },
   selectedPlaceBox: {
-    backgroundColor: '#eef6ff',
+    backgroundColor: colors.surfaceMuted,
     borderRadius: 14,
     padding: 14,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#d7e6ff',
+    borderColor: colors.borderStrong,
   },
   selectedPlaceTitle: {
     fontSize: 12,
-    color: '#4f6186',
+    color: colors.primary,
     marginBottom: 6,
     fontWeight: '700',
   },
   selectedPlaceName: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1f2340',
+    color: colors.text,
     marginBottom: 4,
   },
   selectedPlaceAddress: {
-    color: '#5f6477',
+    color: colors.textSecondary,
     lineHeight: 20,
   },
   mapContainer: {
@@ -479,7 +482,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     overflow: 'hidden',
     marginBottom: 14,
-    backgroundColor: '#eef2ff',
+    backgroundColor: colors.surfaceMuted,
   },
   map: {
     flex: 1,
@@ -490,45 +493,45 @@ const styles = StyleSheet.create({
   resultTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#2d3350',
+    color: colors.text,
     marginBottom: 8,
   },
   placeCard: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface,
     borderRadius: 14,
     padding: 14,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#e1e6f2',
+    borderColor: colors.border,
   },
   placeCardSelected: {
-    borderColor: '#4a67ff',
-    backgroundColor: '#eef3ff',
+    borderColor: colors.primary,
+    backgroundColor: colors.primarySoft,
   },
   placeName: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1f2340',
+    color: colors.text,
     marginBottom: 4,
   },
   placeAddress: {
-    color: '#5f6477',
+    color: colors.textSecondary,
     lineHeight: 20,
   },
   errorText: {
-    color: '#c23b3b',
+    color: colors.danger,
     marginBottom: 12,
     lineHeight: 20,
   },
   button: {
-    backgroundColor: '#4a67ff',
+    backgroundColor: colors.primary,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
     marginTop: 6,
   },
   buttonText: {
-    color: '#ffffff',
+    color: colors.surface,
     fontWeight: '700',
     fontSize: 16,
   },

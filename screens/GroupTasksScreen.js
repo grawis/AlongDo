@@ -1,8 +1,9 @@
 import React from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import TaskCard from '../components/TaskCard';
+import { colors } from '../theme/colors';
 
-export default function GroupTasksScreen({ tasks, onAdvanceTaskStatus, onDeleteTask }) {
+export default function GroupTasksScreen({ tasks, onAdvanceTaskStatus, onDeleteTask, currentUserUid }) {
   const confirmDelete = (task) => {
     Alert.alert('刪除團隊任務', `確定要刪除「${task.title}」嗎？刪除後會同步從資料庫移除。`, [
       { text: '取消', style: 'cancel' },
@@ -25,7 +26,17 @@ export default function GroupTasksScreen({ tasks, onAdvanceTaskStatus, onDeleteT
         <Text style={styles.emptyText}>目前還沒有團隊任務。</Text>
       ) : (
         tasks.map((item) => (
-          <TouchableOpacity key={item.id} activeOpacity={0.88} onPress={() => onAdvanceTaskStatus(item.id)}>
+          <TouchableOpacity
+            key={item.id}
+            activeOpacity={0.88}
+            onPress={() => onAdvanceTaskStatus(item.id)}
+            disabled={
+              item.status === 'in_progress' &&
+              item.claimedByUid &&
+              currentUserUid &&
+              item.claimedByUid !== currentUserUid
+            }
+          >
             <TaskCard task={item} onDelete={confirmDelete} />
           </TouchableOpacity>
         ))
@@ -45,17 +56,17 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1f2340',
+    color: colors.text,
     marginBottom: 8,
   },
   helpText: {
     fontSize: 14,
-    color: '#5f6477',
+    color: colors.textSecondary,
     marginBottom: 12,
     lineHeight: 20,
   },
   emptyText: {
-    color: '#7a7f98',
+    color: colors.textMuted,
     marginTop: 40,
     textAlign: 'center',
   },

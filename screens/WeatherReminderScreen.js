@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import * as Location from 'expo-location';
 import { fetchWeather } from '../services/api';
+import { colors } from '../theme/colors';
 
 const modeLabel = {
   fixed: '固定地址',
@@ -122,11 +123,11 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1f2340',
+    color: colors.text,
     marginBottom: 12,
   },
   weatherBox: {
-    backgroundColor: '#eef3ff',
+    backgroundColor: colors.hero,
     borderRadius: 16,
     padding: 16,
     marginBottom: 14,
@@ -135,62 +136,62 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     marginBottom: 10,
-    color: '#1f2340',
+    color: colors.text,
   },
   weatherText: {
     fontSize: 14,
-    color: '#4d567a',
+    color: colors.textSecondary,
     marginBottom: 10,
     lineHeight: 22,
   },
   sharedLocationText: {
     fontSize: 12,
-    color: '#5f6477',
+    color: colors.textSecondary,
     marginBottom: 14,
   },
   button: {
-    backgroundColor: '#4a67ff',
+    backgroundColor: colors.primary,
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center',
   },
   buttonText: {
     fontSize: 14,
-    color: '#ffffff',
+    color: colors.surface,
     fontWeight: '700',
   },
   tipBox: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#e6e8f5',
+    borderColor: colors.border,
     marginBottom: 12,
   },
   tipTitle: {
     fontSize: 15,
     fontWeight: '700',
     marginBottom: 8,
-    color: '#1f2340',
+    color: colors.text,
   },
   tipText: {
-    color: '#5f6477',
+    color: colors.textSecondary,
     marginBottom: 6,
     lineHeight: 20,
   },
   taskRow: {
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#eef1f7',
+    borderBottomColor: colors.border,
   },
   taskTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1f2340',
+    color: colors.text,
     marginBottom: 4,
   },
   taskMeta: {
-    color: '#5f6477',
+    color: colors.textSecondary,
     lineHeight: 20,
   },
 });

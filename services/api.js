@@ -520,6 +520,10 @@ export async function createGroupTask(task, uid) {
     groupName: task.groupName || '',
     ownerName: task.ownerName || '我',
     ownerUid: uid || 'local-user',
+    claimedByUid: '',
+    claimedByName: '',
+    completedByUid: '',
+    completedByName: '',
     type: 'group',
   };
 
@@ -554,15 +558,38 @@ export async function updateGroupEnabled(groupId, enabled) {
   return { id: groupId, enabled };
 }
 
-export async function updateGroupTaskStatus(taskId, status) {
+export async function updateGroupTaskStatus(taskId, status, actor = null) {
+  const nextFields =
+    status === 'pending'
+      ? {
+          status,
+          claimedByUid: '',
+          claimedByName: '',
+          completedByUid: '',
+          completedByName: '',
+        }
+      : status === 'in_progress'
+      ? {
+          status,
+          claimedByUid: actor?.uid || '',
+          claimedByName: actor?.name || '',
+          completedByUid: '',
+          completedByName: '',
+        }
+      : {
+          status,
+          completedByUid: actor?.uid || '',
+          completedByName: actor?.name || '',
+        };
+
   if (isFirebaseConfigured && db) {
     await updateDoc(doc(db, COLLECTIONS.groupTasks, taskId), {
-      status,
+      ...nextFields,
       updatedAt: serverTimestamp(),
     });
   }
 
-  return { id: taskId, status };
+  return { id: taskId, ...nextFields };
 }
 
 export async function updatePersonalTaskStatus(taskId, status) {

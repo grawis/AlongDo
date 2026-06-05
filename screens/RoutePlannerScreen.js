@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View, Linking } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { planRoute } from '../services/api';
+import { colors } from '../theme/colors';
 
 const defaultRegion = {
   latitude: 23.6978,
@@ -259,7 +260,7 @@ export default function RoutePlannerScreen({
             </Marker>
           ))}
           {routePath.length > 1 ? (
-            <Polyline coordinates={routePath} strokeColor="#4a67ff" strokeWidth={5} />
+            <Polyline coordinates={routePath} strokeColor={colors.route} strokeWidth={5} />
           ) : null}
         </MapView>
       </View>
@@ -326,35 +327,35 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1f2340',
+    color: colors.text,
     marginBottom: 8,
   },
   helpText: {
     fontSize: 14,
-    color: '#5f6477',
+    color: colors.textSecondary,
     marginBottom: 12,
     lineHeight: 20,
   },
   locationBox: {
-    backgroundColor: '#eef3ff',
+    backgroundColor: colors.hero,
     borderRadius: 16,
     padding: 14,
     marginBottom: 12,
   },
   locationText: {
-    color: '#4c536f',
+    color: colors.textSecondary,
     marginBottom: 10,
     lineHeight: 20,
   },
   locationButton: {
     alignSelf: 'flex-start',
-    backgroundColor: '#4a67ff',
+    backgroundColor: colors.primary,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
   locationButtonText: {
-    color: '#ffffff',
+    color: colors.surface,
     fontWeight: '700',
   },
   mapContainer: {
@@ -362,7 +363,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     overflow: 'hidden',
     marginBottom: 12,
-    backgroundColor: '#eef2ff',
+    backgroundColor: colors.surfaceMuted,
   },
   map: {
     flex: 1,
@@ -373,18 +374,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     borderRadius: 999,
     borderWidth: 2,
-    borderColor: '#ffffff',
+    borderColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
   originMarkerBubble: {
-    backgroundColor: '#4a67ff',
+    backgroundColor: colors.primary,
   },
   taskMarkerBubble: {
-    backgroundColor: '#ef6c57',
+    backgroundColor: colors.secondary,
   },
   markerText: {
-    color: '#ffffff',
+    color: colors.surface,
     fontSize: 13,
     fontWeight: '700',
   },
@@ -392,7 +393,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   taskSelect: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface,
     borderRadius: 14,
     padding: 14,
     marginBottom: 10,
@@ -400,21 +401,21 @@ const styles = StyleSheet.create({
     borderColor: '#e4e8f2',
   },
   taskSelected: {
-    borderColor: '#4a67ff',
-    backgroundColor: '#eef3ff',
+    borderColor: colors.primary,
+    backgroundColor: colors.primarySoft,
   },
   taskTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1f2340',
+    color: colors.text,
   },
   taskLocation: {
     marginTop: 4,
-    color: '#6b718d',
+    color: colors.textSecondary,
     lineHeight: 20,
   },
   routeBox: {
-    backgroundColor: '#eef3ff',
+    backgroundColor: colors.primarySoft,
     borderRadius: 16,
     padding: 16,
     marginTop: 12,
@@ -423,45 +424,45 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     marginBottom: 10,
-    color: '#1f2340',
+    color: colors.text,
   },
   summaryText: {
-    color: '#3f4c7a',
+    color: colors.primary,
     marginBottom: 10,
     fontWeight: '600',
   },
   mapsButton: {
     alignSelf: 'flex-start',
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#4a67ff',
+    borderColor: colors.primary,
     paddingHorizontal: 14,
     paddingVertical: 10,
     marginBottom: 12,
   },
   mapsButtonText: {
-    color: '#4a67ff',
+    color: colors.primary,
     fontWeight: '700',
   },
   routeItem: {
     marginBottom: 10,
   },
   routeText: {
-    color: '#28314f',
+    color: colors.text,
     marginBottom: 4,
     fontWeight: '700',
   },
   routeSubText: {
-    color: '#4c536f',
+    color: colors.textSecondary,
     lineHeight: 19,
   },
   errorText: {
-    color: '#b22222',
+    color: colors.danger,
     marginBottom: 6,
   },
   emptyText: {
-    color: '#7a7f98',
+    color: colors.textMuted,
     textAlign: 'center',
     marginTop: 8,
   },

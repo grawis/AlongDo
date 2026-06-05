@@ -1,47 +1,87 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { colors } from '../theme/colors';
 
-export default function HomeScreen({ personalTasks, groupTasks, groups }) {
+const shortUid = (uid) => (uid ? `${uid.slice(0, 6)}...` : '尚未取得');
+
+function SummaryTile({ label, value }) {
+  return (
+    <View style={styles.summaryTile}>
+      <Text style={styles.summaryValue}>{value}</Text>
+      <Text style={styles.summaryLabel}>{label}</Text>
+    </View>
+  );
+}
+
+export default function HomeScreen({
+  personalTasks,
+  groupTasks,
+  groups,
+  currentUser,
+  sharedLocationLabel,
+}) {
   const pendingPersonal = personalTasks.filter((task) => task.status === 'pending').length;
+  const inProgressPersonal = personalTasks.filter((task) => task.status === 'in_progress').length;
   const activeGroups = groups.filter((group) => group.enabled).length;
   const pendingGroupTasks = groupTasks.filter((task) => task.status === 'pending').length;
+  const inProgressGroupTasks = groupTasks.filter((task) => task.status === 'in_progress').length;
 
   return (
-    <View style={styles.screen}>
-      <Text style={styles.sectionTitle}>AlongDo 首頁</Text>
-
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>目前摘要</Text>
-        <Text style={styles.cardText}>個人任務：{personalTasks.length}</Text>
-        <Text style={styles.cardText}>待處理個人任務：{pendingPersonal}</Text>
-        <Text style={styles.cardText}>團隊任務：{groupTasks.length}</Text>
-        <Text style={styles.cardText}>啟用中的群組：{activeGroups}</Text>
-        <Text style={styles.cardText}>待處理團隊任務：{pendingGroupTasks}</Text>
-      </View>
-
-      <View style={styles.noteBox}>
-        <Text style={styles.noteTitle}>目前重點</Text>
-        <Text style={styles.noteText}>
-          你現在可以新增個人任務、建立或加入群組、建立團隊任務，並把資料同步存到 Firebase。固定地址任務可透過 Google 地點搜尋選定位置；彈性地點任務則會在附近任務頁根據目前定位找對應地點。
+    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+      <View style={styles.heroCard}>
+        <Text style={styles.heroTitle}>首頁</Text>
+        <Text style={styles.heroText}>
+          AlongDo 是一款結合待辦事項、群組協作、位置規劃與天氣提醒的行動 App，幫助使用者更直覺地安排日常任務與外出流程。
         </Text>
       </View>
-    </View>
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>任務摘要</Text>
+        <View style={styles.summaryGrid}>
+          <SummaryTile label="個人任務總數" value={personalTasks.length} />
+          <SummaryTile label="個人待處理" value={pendingPersonal} />
+          <SummaryTile label="個人進行中" value={inProgressPersonal} />
+          <SummaryTile label="啟用中群組" value={activeGroups} />
+          <SummaryTile label="團隊待處理" value={pendingGroupTasks} />
+          <SummaryTile label="團隊進行中" value={inProgressGroupTasks} />
+        </View>
+      </View>
+
+      <View style={styles.metaCard}>
+        <Text style={styles.metaLine}>目前裝置身分：{shortUid(currentUser?.uid)}</Text>
+        <Text style={styles.metaLine}>目前位置：{sharedLocationLabel || '尚未取得目前位置'}</Text>
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    paddingTop: 8,
   },
-  sectionTitle: {
+  content: {
+    paddingTop: 8,
+    paddingBottom: 24,
+  },
+  heroCard: {
+    backgroundColor: colors.hero,
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 14,
+  },
+  heroTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1f2340',
-    marginBottom: 12,
+    color: colors.text,
+    marginBottom: 8,
+  },
+  heroText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 21,
   },
   card: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 14,
@@ -51,31 +91,46 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 2,
   },
+  metaCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
   cardTitle: {
     fontSize: 16,
     fontWeight: '700',
     marginBottom: 10,
-    color: '#1f2340',
+    color: colors.text,
   },
-  cardText: {
-    fontSize: 14,
-    color: '#4f5472',
+  summaryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  summaryTile: {
+    width: '48%',
+    backgroundColor: colors.surfaceSoft,
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  summaryValue: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: colors.text,
     marginBottom: 6,
   },
-  noteBox: {
-    backgroundColor: '#eef3ff',
-    borderRadius: 14,
-    padding: 16,
+  summaryLabel: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    lineHeight: 18,
   },
-  noteTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    marginBottom: 8,
-    color: '#1f2340',
-  },
-  noteText: {
-    fontSize: 14,
-    color: '#5f6477',
-    lineHeight: 20,
+  metaLine: {
+    fontSize: 13,
+    color: colors.primary,
+    marginTop: 4,
   },
 });

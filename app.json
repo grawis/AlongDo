@@ -3,6 +3,7 @@
     "name": "AlongDo",
     "slug": "alongdo",
     "version": "1.0.0",
+    "icon": "./assets/icon-source.png",
     "orientation": "portrait",
     "platforms": [
       "ios",
@@ -18,7 +19,8 @@
     "android": {
       "package": "com.anonymous.alongdo",
       "adaptiveIcon": {
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/icon-source.png",
+        "backgroundColor": "#f6fbff"
       }
     },
     "plugins": [

@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-nati
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import TaskCard from '../components/TaskCard';
 import { fetchNearbyTasks, resolveTasksForCurrentLocation } from '../services/api';
+import { colors } from '../theme/colors';
 
 const defaultRegion = {
   latitude: 25.0375,
@@ -164,7 +165,7 @@ export default function NearbySimulationScreen({
           showsMyLocationButton
         >
           {sharedLocation ? (
-            <Marker coordinate={sharedLocation} title="目前位置" pinColor="#4a67ff" />
+            <Marker coordinate={sharedLocation} title="目前位置" pinColor={colors.primary} />
           ) : null}
           {displayTasks.map((task) => {
             const coordinate = getCoordinate(task);
@@ -203,35 +204,35 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1f2340',
+    color: colors.text,
     marginBottom: 12,
   },
   simulationBox: {
-    backgroundColor: '#eef3ff',
+    backgroundColor: colors.hero,
     borderRadius: 16,
     padding: 16,
     marginBottom: 14,
   },
   simulationText: {
     fontSize: 14,
-    color: '#4d567a',
+    color: colors.textSecondary,
     marginBottom: 12,
     lineHeight: 20,
   },
   coordsText: {
     fontSize: 12,
-    color: '#5f6477',
+    color: colors.textSecondary,
     marginBottom: 10,
   },
   button: {
-    backgroundColor: '#4a67ff',
+    backgroundColor: colors.primary,
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center',
   },
   buttonText: {
     fontSize: 14,
-    color: '#ffffff',
+    color: colors.surface,
     fontWeight: '700',
   },
   mapContainer: {
@@ -239,7 +240,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     overflow: 'hidden',
     marginBottom: 14,
-    backgroundColor: '#eef2ff',
+    backgroundColor: colors.surfaceMuted,
   },
   map: {
     flex: 1,
@@ -248,10 +249,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     marginBottom: 10,
-    color: '#1f2340',
+    color: colors.text,
   },
   emptyText: {
-    color: '#7a7f98',
+    color: colors.textMuted,
     textAlign: 'center',
   },
 });

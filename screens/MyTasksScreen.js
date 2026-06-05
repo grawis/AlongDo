@@ -1,6 +1,7 @@
 import React from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import TaskCard from '../components/TaskCard';
+import { colors } from '../theme/colors';
 
 export default function MyTasksScreen({ tasks, onAdvanceTaskStatus, onDeleteTask }) {
   const confirmDelete = (task) => {
@@ -45,17 +46,17 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1f2340',
+    color: colors.text,
     marginBottom: 8,
   },
   helpText: {
     fontSize: 14,
-    color: '#5f6477',
+    color: colors.textSecondary,
     marginBottom: 12,
     lineHeight: 20,
   },
   emptyText: {
-    color: '#7a7f98',
+    color: colors.textMuted,
     marginTop: 40,
     textAlign: 'center',
   },

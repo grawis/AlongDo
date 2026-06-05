@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
+  Image,
   SafeAreaView,
   StyleSheet,
   Text,
@@ -9,6 +11,7 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as Location from 'expo-location';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import HomeScreen from './screens/HomeScreen';
 import MyTasksScreen from './screens/MyTasksScreen';
 import GroupTasksScreen from './screens/GroupTasksScreen';
@@ -18,6 +21,7 @@ import NearbySimulationScreen from './screens/NearbySimulationScreen';
 import RoutePlannerScreen from './screens/RoutePlannerScreen';
 import WeatherReminderScreen from './screens/WeatherReminderScreen';
 import { ensureAnonymousAuth } from './services/auth';
+import { colors } from './theme/colors';
 import {
   createGroup,
   createGroupTask,
@@ -33,6 +37,7 @@ import {
   updateGroupTaskStatus,
   updatePersonalTaskStatus,
 } from './services/api';
+import { db, isFirebaseConfigured } from './services/firebase';
 
 const tabs = [
   { key: 'home', label: '首頁' },
@@ -73,10 +78,57 @@ export default function App() {
   const [sharedLocationLabel, setSharedLocationLabel] = useState('尚未取得目前位置');
   const [groupMembersByGroup, setGroupMembersByGroup] = useState({});
   const [loadingMemberGroupIds, setLoadingMemberGroupIds] = useState([]);
+  const cachedMemberGroupIdsRef = useRef([]);
 
   useEffect(() => {
     initializeAppData();
   }, []);
+
+  useEffect(() => {
+    cachedMemberGroupIdsRef.current = Object.keys(groupMembersByGroup);
+  }, [groupMembersByGroup]);
+
+  useEffect(() => {
+    if (!currentUser?.uid || !isFirebaseConfigured || !db) return;
+
+    let active = true;
+
+    const refreshData = async () => {
+      if (!active) return;
+      await loadData(currentUser.uid);
+
+      const cachedGroupIds = cachedMemberGroupIdsRef.current;
+      if (!active || cachedGroupIds.length === 0) return;
+
+      const refreshedMembers = await Promise.all(
+        cachedGroupIds.map(async (groupId) => [groupId, await fetchGroupMembers(groupId)])
+      );
+
+      if (!active) return;
+
+      setGroupMembersByGroup(
+        refreshedMembers.reduce((result, [groupId, members]) => {
+          result[groupId] = members;
+          return result;
+        }, {})
+      );
+    };
+
+    const subscriptions = [
+      onSnapshot(
+        query(collection(db, 'personalTasks'), where('ownerUid', '==', currentUser.uid)),
+        refreshData
+      ),
+      onSnapshot(collection(db, 'groupMembers'), refreshData),
+      onSnapshot(collection(db, 'groups'), refreshData),
+      onSnapshot(collection(db, 'groupTasks'), refreshData),
+    ];
+
+    return () => {
+      active = false;
+      subscriptions.forEach((unsubscribe) => unsubscribe());
+    };
+  }, [currentUser?.uid]);
 
   const loadData = async (uid) => {
     setLoading(true);
@@ -194,11 +246,31 @@ export default function App() {
   };
 
   const handleAdvanceGroupTaskStatus = async (taskId) => {
+    if (!currentUser) return;
+
     const currentTask = groupTasks.find((task) => task.id === taskId);
     if (!currentTask) return;
 
+    const actorName =
+      groups.find((group) => group.id === currentTask.groupId)?.nickname || '目前成員';
+
+    if (
+      currentTask.status === 'in_progress' &&
+      currentTask.claimedByUid &&
+      currentTask.claimedByUid !== currentUser.uid
+    ) {
+      Alert.alert(
+        '目前無法切換',
+        `${currentTask.claimedByName || '其他成員'} 正在處理這筆任務，需由對方完成或取消後才能變更。`
+      );
+      return;
+    }
+
     const nextStatus = getNextTaskStatus(currentTask.status);
-    await updateGroupTaskStatus(taskId, nextStatus);
+    const updatedTaskMeta = await updateGroupTaskStatus(taskId, nextStatus, {
+      uid: currentUser.uid,
+      name: actorName,
+    });
 
     setGroupTasks((current) =>
       current.map((task) =>
@@ -206,6 +278,22 @@ export default function App() {
           ? {
               ...task,
               status: nextStatus,
+              claimedByUid:
+                updatedTaskMeta.claimedByUid !== undefined
+                  ? updatedTaskMeta.claimedByUid
+                  : task.claimedByUid,
+              claimedByName:
+                updatedTaskMeta.claimedByName !== undefined
+                  ? updatedTaskMeta.claimedByName
+                  : task.claimedByName,
+              completedByUid:
+                updatedTaskMeta.completedByUid !== undefined
+                  ? updatedTaskMeta.completedByUid
+                  : task.completedByUid,
+              completedByName:
+                updatedTaskMeta.completedByName !== undefined
+                  ? updatedTaskMeta.completedByName
+                  : task.completedByName,
             }
           : task
       )
@@ -236,6 +324,7 @@ export default function App() {
 
     const createdGroup = await createGroup({ name, nickname }, currentUser.uid);
     setGroups((current) => [createdGroup, ...current]);
+    await loadData(currentUser.uid);
   };
 
   const handleJoinGroup = async ({ inviteCode, nickname }) => {
@@ -251,7 +340,9 @@ export default function App() {
   };
 
   const handleLoadGroupMembers = async (groupId) => {
-    if (groupMembersByGroup[groupId]) return groupMembersByGroup[groupId];
+    if (groupMembersByGroup[groupId] && !loadingMemberGroupIds.includes(groupId)) {
+      return groupMembersByGroup[groupId];
+    }
 
     setLoadingMemberGroupIds((current) => [...current, groupId]);
     try {
@@ -280,23 +371,36 @@ export default function App() {
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
 
-      <View style={styles.header}>
-        <Text style={styles.title}>AlongDo</Text>
-        <Text style={styles.subtitle}>懂地點的待辦小幫手</Text>
-        {currentUser ? <Text style={styles.identity}>目前裝置身分：{shortUid(currentUser.uid)}</Text> : null}
+      <View style={[styles.header, activeTab === 'home' && styles.headerHome]}>
+        <View style={[styles.brandRow, activeTab === 'home' && styles.brandRowHome]}>
+          <Image
+            source={require('./assets/icon-source.png')}
+            style={[styles.brandIcon, activeTab === 'home' && styles.brandIconHome]}
+          />
+          <Text style={[styles.title, activeTab === 'home' && styles.titleHome]}>AlongDo</Text>
+        </View>
+        {activeTab === 'home' && (
+          <Text style={styles.subtitleHome}>懂地點的待辦小幫手</Text>
+        )}
         <Text style={styles.locationSummary}>{sharedLocationLabel}</Text>
       </View>
 
       <View style={styles.content}>
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#4a67ff" />
+            <ActivityIndicator size="large" color={colors.primary} />
             <Text style={styles.loadingText}>正在載入你的任務與群組...</Text>
           </View>
         ) : (
           <>
             {activeTab === 'home' && (
-              <HomeScreen personalTasks={personalTasks} groupTasks={groupTasks} groups={groups} />
+              <HomeScreen
+                personalTasks={personalTasks}
+                groupTasks={groupTasks}
+                groups={groups}
+                currentUser={currentUser}
+                sharedLocationLabel={sharedLocationLabel}
+              />
             )}
             {activeTab === 'myTasks' && (
               <MyTasksScreen
@@ -310,6 +414,7 @@ export default function App() {
                 tasks={groupTasks}
                 onAdvanceTaskStatus={handleAdvanceGroupTaskStatus}
                 onDeleteTask={handleDeleteGroupTask}
+                currentUserUid={currentUser?.uid}
               />
             )}
             {activeTab === 'groups' && (
@@ -376,32 +481,54 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f7f7fb',
+    backgroundColor: colors.background,
   },
   header: {
     paddingHorizontal: 20,
-    paddingTop: 18,
+    paddingTop: 34,
     paddingBottom: 10,
   },
+  headerHome: {
+    paddingTop: 34,
+    paddingBottom: 16,
+  },
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  brandRowHome: {
+    justifyContent: 'center',
+    alignSelf: 'center',
+  },
+  brandIcon: {
+    width: 43,
+    height: 43,
+    borderRadius: 12,
+  },
+  brandIconHome: {
+    width: 75,
+    height: 75,
+    borderRadius: 20,
+  },
   title: {
-    fontSize: 28,
+    fontSize: 35,
     fontWeight: '700',
-    color: '#1e1f25',
+    color: colors.text,
   },
-  subtitle: {
-    marginTop: 4,
-    fontSize: 14,
-    color: '#6b6f85',
+  titleHome: {
+    fontSize: 54,
   },
-  identity: {
-    marginTop: 6,
-    fontSize: 12,
-    color: '#7a7f98',
+  subtitleHome: {
+    textAlign: 'center',
+    fontSize: 17,
+    marginTop: 8,
+    color: colors.textSecondary,
   },
   locationSummary: {
-    marginTop: 6,
+    marginTop: 8,
     fontSize: 12,
-    color: '#4a67ff',
+    color: colors.primary,
   },
   content: {
     flex: 1,
@@ -414,32 +541,32 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 14,
-    color: '#4a67ff',
+    color: colors.primary,
     fontSize: 16,
   },
   navigation: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     borderTopWidth: 1,
-    borderTopColor: '#dde0ec',
-    backgroundColor: '#ffffff',
+    borderTopColor: colors.border,
+    backgroundColor: colors.surface,
   },
   navButton: {
     width: '25%',
     paddingVertical: 12,
     alignItems: 'center',
     borderRightWidth: 1,
-    borderRightColor: '#f0f2f7',
+    borderRightColor: colors.border,
   },
   navButtonActive: {
-    backgroundColor: '#eef3ff',
+    backgroundColor: colors.secondarySoft,
   },
   navText: {
-    color: '#5f6477',
+    color: colors.textSecondary,
     fontSize: 11,
     fontWeight: '600',
   },
   navTextActive: {
-    color: '#27316b',
+    color: colors.primary,
   },
 });
